@@ -1,0 +1,62 @@
+"use server";
+
+import { ApiResponse } from '@/lib/types';
+import { ensureHttps } from '@/lib/utils';
+import { z } from 'zod';
+import { nanoid} from 'nanoid';
+import { db } from '@/Server/DB';
+import { urls } from '@/Server/DB/schema';
+import { revalidatePath } from 'next/cache';
+
+const shortenUrlSchema = z.object({
+    url: z.string().url(),
+})
+
+export async function shortenUrl(formData: FormData):Promise<ApiResponse<{shortUrl: string}>> {
+    try{
+        const url = formData.get("url") as string;
+        const validatedUrl = shortenUrlSchema.safeParse({url});
+
+        if(!validatedUrl.success) {
+            return {
+                success: false,
+                error: validatedUrl.error.flatten().fieldErrors.url?.[0] || "Invalid URL",
+            };
+        }
+
+        const originalUrl = ensureHttps(validatedUrl.data.url);
+        const shortCode = nanoid(10);
+
+        const existingUrl = await db.query.urls.findFirst({
+            where: (urls, {eq}) => eq(urls.shortCode, shortCode),
+        })
+
+        if(existingUrl){
+            return shortenUrl(formData);
+        }
+
+        await db.insert(urls).values({
+            originalUrl,
+            shortCode,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+        })
+
+        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
+        const shortUrl = `${baseUrl}/r/${shortCode}` // change the var cause can not be same
+
+        revalidatePath("/");
+
+        return {
+            success: true,
+            data: { shortUrl }
+        }
+
+    } catch (error) {
+        console.error("Failed to shorten URL:", error);
+        return {
+            success: false,
+            error: "Failed to shorten URL",
+        };
+    }
+}
