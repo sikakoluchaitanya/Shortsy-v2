@@ -8,6 +8,8 @@ import { Button } from "../ui/button";
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 import { shortenUrl } from "@/Server/actions/urls/shorten-url";
+import { Card, CardContent } from "../ui/card";
+import { Copy } from "lucide-react";
 
 export function UrlShortnerForm() {
     const router = useRouter();
@@ -51,6 +53,16 @@ export function UrlShortnerForm() {
         } finally {
             setIsLoading(false);
         }
+    };
+
+    const copyToClipboard = async () => {
+        if (!shortUrl) return;
+
+        try{
+            await navigator.clipboard.writeText(shortUrl);
+        } catch (error) {
+            console.error("Failed to copy: ", error);
+        }
     }
 
     return (
@@ -86,6 +98,39 @@ export function UrlShortnerForm() {
                             )}
                         </Button>
                     </div>
+
+                    {error && (
+                        <div className="p-3 bg-destructive/10 text-destructive rounded-md text-sm">
+                            {error}
+                        </div>
+                    )}
+
+                    {shortUrl && (
+                        <Card>
+                            <CardContent className="p-4">
+                                <p className="text-sm font-medium text-muted-foreground mb-2">
+                                    Your shortened URL is: 
+                                </p>
+                                <div className="flex items-center gap-2">
+                                    <Input
+                                        type="text"
+                                        value={shortUrl}
+                                        readOnly
+                                        className="font-medium"
+                                    />
+                                    <Button 
+                                        type="button" 
+                                        variant="outline" 
+                                        className="flex-shrink-0"
+                                        onClick={copyToClipboard}
+                                    >
+                                        <Copy className="size-4 mr-1"/>
+                                        Copy
+                                    </Button>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    )}
                 </form>
             </Form>
         </div>
