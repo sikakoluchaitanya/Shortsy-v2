@@ -15,6 +15,13 @@
       "when": 1744280992204,
       "tag": "0001_tiny_madame_hydra",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1744488530740,
+      "tag": "0002_long_living_mummy",
+      "breakpoints": true
     }
   ]
 }
