@@ -3,7 +3,7 @@
 import { signIn } from "next-auth/react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useRouter, useSearchParams } from "next/navigation"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
 import { Button } from "../ui/button"
@@ -11,6 +11,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "../ui/input"
 import { Loader2, Mail, Lock, AlertCircle } from "lucide-react"
 import { Alert, AlertDescription } from '../ui/alert'
+import { toast } from "sonner";
 
 const loginSchema = z.object({
   email: z.string().email("Invalid email address"),
@@ -24,6 +25,21 @@ export const LoginForm = () => {
   const searchParams = useSearchParams();
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const registered = searchParams.get("registered");
+    if (registered === "true") {
+      toast.success("Account created successfully", {
+        description: "You have been registered successfully. Please sign in.",
+      });
+
+      // remove the query param
+      const newUrl = new URL(window.location.href);
+      newUrl.searchParams.delete("registered");
+      router.replace(newUrl.toString(), undefined);
+    }
+  }, [searchParams, router]);
+
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -43,8 +59,15 @@ export const LoginForm = () => {
 
       if (result?.error) {
         setError("Invalid email or password");
+        toast.error("Invalid email or password", {
+          description: "Please check your email and password and try again.",
+        });
         return;
       }
+
+      toast.success("Signed in successfully", {
+        description: "You have been signed in successfully.",
+      });
 
       router.push("/dashboard");
       router.refresh();
