@@ -7,6 +7,7 @@ import { nanoid} from 'nanoid';
 import { db } from '@/Server/DB';
 import { urls } from '@/Server/DB/schema';
 import { revalidatePath } from 'next/cache';
+import { auth } from '@/Server/auth';
 
 const shortenUrlSchema = z.object({
     url: z.string().url(),
@@ -14,6 +15,18 @@ const shortenUrlSchema = z.object({
 
 export async function shortenUrl(formData: FormData):Promise<ApiResponse<{shortUrl: string}>> {
     try{
+        const session = await auth();
+
+        if (!session || !session.user?.id) {
+            return {
+                success: false,
+                error: "User not authenticated",
+            };
+        }
+
+        
+        const userId = session?.user.id || null;
+
         const url = formData.get("url") as string;
         const validatedUrl = shortenUrlSchema.safeParse({url});
 
@@ -40,6 +53,7 @@ export async function shortenUrl(formData: FormData):Promise<ApiResponse<{shortU
             shortCode,
             createdAt: new Date(),
             updatedAt: new Date(),
+            userId: userId || "anonymous",
         })
 
         const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
