@@ -6,6 +6,7 @@ import { Button } from "../ui/button";
 import { formatDistanceToNow } from "date-fns"
 import { toast } from "sonner";
 import { deleteUrl } from "@/Server/actions/urls/delete-url";
+import { QrCodeModal } from "../modals/qr-code-modal";
 
 interface Url {
     id: number;
@@ -23,12 +24,23 @@ export function UserUrlsTable({ urls }: UserUrlsTableProps) {
     const [isDeleting, setisDeleting] = useState<number | null>(null);
     const [localUrls, setLocalUrls] = useState<Url[]>(urls);
     const [baseUrl, setBaseUrl] = useState<string>("");
+    const [qrCodeUrl, setQrCodeUrl] = useState<string>("");
+    const [qrCodeShortCode, setQrCodeShortCode] = useState<string>("");
+    const [qrCodeVisible, setQrCodeVisible] = useState<boolean>(false);
 
     useEffect(() => {
         // Run only on client
         const url = process.env.NEXT_PUBLIC_APP_URL || window.location.origin;
         setBaseUrl(url);
     }, []);
+
+    const showQrcode = (shortCode: string) => {
+        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || window.location.origin;
+        const shortUrl = `${baseUrl}/r/${shortCode}`;
+        setQrCodeUrl(shortUrl);
+        setQrCodeShortCode(shortCode);
+        setQrCodeVisible(true);
+    }
 
     if (!baseUrl) return null;
 
@@ -119,14 +131,19 @@ export function UserUrlsTable({ urls }: UserUrlsTableProps) {
                                 <td className="py-3 px-4 text-muted-foreground">
                                     {url.clicks}
                                 </td>
-                                <td className="py-3 px-4 text-muted-foreground">
+                                <td className="py-3 px-1 text-muted-foreground">
                                     {formatDistanceToNow(new Date(url.createdAt), {
                                         addSuffix: true,
                                     })}
                                 </td>
                                 <td className="py-3 px-4 text-right">
                                     <div className="flex justify-end">
-                                        <Button variant={"ghost"} size={"icon"} className="size-8 text-primary hover:text-primary">
+                                        <Button 
+                                            variant={"ghost"} 
+                                            size={"icon"} 
+                                            className="size-8 text-primary hover:text-primary"
+                                            onClick={() => showQrcode(url.shortCode)}
+                                        >
                                             <QrCode className="size-4"/>
                                         </Button>
                                         <Button variant={"ghost"} size={"icon"} className="size-8 text-primary hover:text-primary">
@@ -152,6 +169,13 @@ export function UserUrlsTable({ urls }: UserUrlsTableProps) {
                 </tbody>
             </table>
         </div>
+
+        <QrCodeModal 
+            isOpen={qrCodeVisible}
+            onOpenChange={setQrCodeVisible}
+            shortCode={qrCodeShortCode}
+            url = {qrCodeUrl}
+        />
     </>
     )
 
