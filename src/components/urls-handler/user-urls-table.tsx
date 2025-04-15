@@ -7,6 +7,7 @@ import { formatDistanceToNow } from "date-fns"
 import { toast } from "sonner";
 import { deleteUrl } from "@/Server/actions/urls/delete-url";
 import { QrCodeModal } from "../modals/qr-code-modal";
+import { EditUrlModal } from "../modals/edit-url-modal";
 
 interface Url {
     id: number;
@@ -27,6 +28,8 @@ export function UserUrlsTable({ urls }: UserUrlsTableProps) {
     const [qrCodeUrl, setQrCodeUrl] = useState<string>("");
     const [qrCodeShortCode, setQrCodeShortCode] = useState<string>("");
     const [qrCodeVisible, setQrCodeVisible] = useState<boolean>(false);
+    const [isEditModalOpen, setIsEditModalOpen] = useState<boolean>(false);
+    const [urlToEdit, setUrlToEdit] = useState<{id: number, shortCode: string} | null >(null);
 
     useEffect(() => {
         // Run only on client
@@ -82,6 +85,32 @@ export function UserUrlsTable({ urls }: UserUrlsTableProps) {
         } finally {
             setisDeleting(null);
         }
+    }
+
+    const handleEdit = (id: number, shortCode: string) => {
+        setUrlToEdit({id, shortCode});
+        setIsEditModalOpen(true);
+    };
+
+    const handleEditSuccess = (newShortCode: string) => {
+        if(!urlToEdit) return;
+
+        setLocalUrls((prev) => 
+            prev.map((url) => 
+                url.id === urlToEdit.id ? { ...url, shortCode: newShortCode } : url
+            )
+        );      
+    };
+
+    if(localUrls.length === 0) {
+        return (
+            <div className="text-center py-8">
+                <p className="text-muted-foreground">
+                    You havem&apos;t created any shotrt URls yet. Click the button below to
+                    create your first short URL.
+                </p>
+            </div>
+        )
     }
 
     return (
@@ -146,7 +175,12 @@ export function UserUrlsTable({ urls }: UserUrlsTableProps) {
                                         >
                                             <QrCode className="size-4"/>
                                         </Button>
-                                        <Button variant={"ghost"} size={"icon"} className="size-8 text-primary hover:text-primary">
+                                        <Button 
+                                            variant={"ghost"} 
+                                            size={"icon"} 
+                                            className="size-8 text-primary hover:text-primary"
+                                            onClick={() => handleEdit(url.id, url.shortCode)}    
+                                        >
                                             <Edit className="size-4"/>
                                         </Button>
                                         <Button 
@@ -176,6 +210,16 @@ export function UserUrlsTable({ urls }: UserUrlsTableProps) {
             shortCode={qrCodeShortCode}
             url = {qrCodeUrl}
         />
+
+        {urlToEdit && (
+            <EditUrlModal
+                isOpen={isEditModalOpen}
+                onOpenChange={setIsEditModalOpen}
+                urlId={urlToEdit.id}
+                currentShortCode={urlToEdit.shortCode}
+                onSuccess={handleEditSuccess}
+            />
+        )}
     </>
     )
 
