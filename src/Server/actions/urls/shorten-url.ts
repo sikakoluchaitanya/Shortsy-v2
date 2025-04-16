@@ -1,7 +1,7 @@
 "use server";
 
 import { ApiResponse } from '@/lib/types';
-import { ensureHttps } from '@/lib/utils';
+import { ensureHttps, isValidUrl } from '@/lib/utils';
 import { z } from 'zod';
 import { nanoid} from 'nanoid';
 import { db } from '@/Server/DB';
@@ -10,7 +10,17 @@ import { revalidatePath } from 'next/cache';
 import { auth } from '@/Server/auth';
 
 const shortenUrlSchema = z.object({
-    url: z.string().url(),
+    url: z.string().refine(isValidUrl, {
+        message: "Please enter a valid URL"
+    }),
+    customCode: z
+        .string()
+        .min(6, { message: "Custom code must be at least 6 characters long",})
+        .max(50, { message: "Custom code must be at most 50 characters long",})
+        .regex(/^[a-zA-Z0-9_-]+$/,"Custom code must contain only letters, numbers, dashes, and underscores")
+        .optional()
+        .nullable()
+        .transform((val) => (val === null || val === "" ? undefined : val))
 })
 
 export async function shortenUrl(formData: FormData):Promise<ApiResponse<{shortUrl: string}>> {
@@ -28,7 +38,12 @@ export async function shortenUrl(formData: FormData):Promise<ApiResponse<{shortU
         const userId = session?.user.id || null;
 
         const url = formData.get("url") as string;
-        const validatedUrl = shortenUrlSchema.safeParse({url});
+        const customCode = formData.get("customCode") as string;
+        
+        const validatedUrl = shortenUrlSchema.safeParse({
+            url,
+            customCode: customCode ? customCode : undefined,
+        });
 
         if(!validatedUrl.success) {
             return {
@@ -38,13 +53,19 @@ export async function shortenUrl(formData: FormData):Promise<ApiResponse<{shortU
         }
 
         const originalUrl = ensureHttps(validatedUrl.data.url);
-        const shortCode = nanoid(10);
+        const shortCode = validatedUrl.data.customCode || nanoid(10);
 
         const existingUrl = await db.query.urls.findFirst({
             where: (urls, {eq}) => eq(urls.shortCode, shortCode),
         })
 
         if(existingUrl){
+            if(validatedUrl.data.customCode) {
+                return {
+                    success: false,
+                    error: "Custom code already exists",
+                }
+            }
             return shortenUrl(formData);
         }
 
