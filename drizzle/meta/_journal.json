@@ -22,6 +22,13 @@
       "when": 1744488530740,
       "tag": "0002_long_living_mummy",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1744765614938,
+      "tag": "0003_swift_susan_delgado",
+      "breakpoints": true
     }
   ]
 }

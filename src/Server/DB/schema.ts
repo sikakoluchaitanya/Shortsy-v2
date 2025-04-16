@@ -1,5 +1,5 @@
 import { relations } from "drizzle-orm";
-import { integer, pgEnum, text, timestamp, primaryKey } from "drizzle-orm/pg-core";
+import { integer, pgEnum, text, timestamp, primaryKey, boolean } from "drizzle-orm/pg-core";
 import { pgTable, serial, varchar } from "drizzle-orm/pg-core";
 import type { AdapterAccount } from "next-auth/adapters";
 
@@ -67,6 +67,8 @@ export const urls = pgTable("urls", {
     updatedAt: timestamp("updated_at").notNull().defaultNow(),
     clicks: integer("clicks").notNull().default(0),
     userId: varchar("user_id", { length: 255 }).notNull().references(() => users.id, { onDelete: "set null" }),
+    flagged: boolean("flagged").default(false).notNull(),
+    flagReason: text("flag_reason"),
 })
 
 export const userRelations = relations(users, ({ many }) => ({

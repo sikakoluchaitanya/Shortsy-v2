@@ -9,9 +9,10 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { shortenUrl } from "@/Server/actions/urls/shorten-url";
 import { Card, CardContent } from "../ui/card";
-import { Copy, QrCode } from "lucide-react";
+import { AlertTriangle, Copy, QrCode } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { QrCodeModal } from "../modals/qr-code-modal";
+import { toast } from "sonner";
 
 
 export function UrlShortnerForm() {
@@ -30,13 +31,18 @@ export function UrlShortnerForm() {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [isQrCodeModalOpen, setIsQrCodeModalOpen] = useState(false);
+    const [flaggedinfo, setFlaggedinfo] = useState<{
+        flagged: boolean;
+        resaon: string | undefined;
+        message: string | undefined;
+    } | null>(null);
 
 
     const form = useForm<UrlFormData>({
-        resolver: zodResolver(urlSchema),
+        resolver: zodResolver(urlSchema) as any, // just to bypass the typescript error but the validation is working fine
         defaultValues: {
             url: "",
-            customCode: "",
+            customCode: "" ,
         },
     });
 
@@ -45,6 +51,7 @@ export function UrlShortnerForm() {
         setError(null);
         setShortUrl(null);
         setShortCode(null);
+        setFlaggedinfo(null);
 
         try {
             const formData = new FormData();
@@ -61,6 +68,19 @@ export function UrlShortnerForm() {
                 const shortCodeMatch = response.data.shortUrl.match(/\/r\/([^/]+)$/);
                 if(shortCodeMatch && shortCodeMatch[1]) {
                     setShortCode(shortCodeMatch[1])
+                }
+
+                if(response.data.flagged) {
+                    setFlaggedinfo({
+                        flagged: response.data.flagged,
+                        resaon: response.data.flagReason || undefined,
+                        message: response.data.message,
+                    });
+                    toast.warning(response.data.message || "Your URL is flagged for review.",{
+                        description: response.data.flagReason,
+                    });
+                } else {
+                    toast.success("URL shortened successfully!");
                 }
             }
 
@@ -188,6 +208,28 @@ export function UrlShortnerForm() {
                                         <QrCode className="size-4 mr-1"/>
                                     </Button>
                                 </div>
+                                {flaggedinfo && flaggedinfo.flagged && (
+                                    <div className="mt-3 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-md">
+                                        <div className="flex items-start gap-2">
+                                            <AlertTriangle className="size-5 text-yellow-600 dark:text-yellow-400 mt-0.5 flex-shrink-0"/>
+                                            <div>
+                                                <p className="text-sm font-medium text-yellow-800 dark:text-yellow-300">
+                                                    This URL has been flagged for review
+                                                </p>
+                                                <p className="text-xs text-yellow-700 dark:text-yellow-400 mt-1">
+                                                    {flaggedinfo.message ||
+                                                    "this URL will be reviwed by our moderators before it becomes fully active"}
+                                                </p>
+                                                {flaggedinfo.resaon && (
+                                                    <p className="text-xs mt-2 text-yellow-600 dark:text-yellow-400">
+                                                        <span className="font-medium">Reason:</span>{""}
+                                                        {flaggedinfo.resaon || "Unknown reason"}
+                                                    </p>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
                             </CardContent>
                         </Card>
                     )}
