@@ -2,6 +2,11 @@ import {z} from 'zod';
 
 export const urlSchema = z.object({
     url: z.string().url("Please enter a valid URL"),
+    customCode: z
+        .string()
+        .min(6, "Custom code is required")
+        .max(50, "Custom code must be less than 50 characters")
+        .regex(/^[a-zA-Z0-9_-]+$/, "Custom code must only contain letters, numbers, dashes, and underscores"),
 })
 
 export type UrlFormData = z.infer<typeof urlSchema>;

@@ -6,25 +6,37 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Input } from "../ui/input";
 import { Button } from "../ui/button";
 import { usePathname, useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { shortenUrl } from "@/Server/actions/urls/shorten-url";
 import { Card, CardContent } from "../ui/card";
-import { Copy } from "lucide-react";
+import { Copy, QrCode } from "lucide-react";
+import { useSession } from "next-auth/react";
+import { QrCodeModal } from "../modals/qr-code-modal";
+
 
 export function UrlShortnerForm() {
+    const { data: session } = useSession();
+
     const router = useRouter();
     const pathname = usePathname();
+    const [originUrl, setOriginUrl] = useState("");
+
+    useEffect(() => {
+        setOriginUrl(window.location.href)
+    }, [])
 
     const [shortUrl, setShortUrl] = useState<string | null>(null);
     const [shortCode, setShortCode] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [isQrCodeModalOpen, setIsQrCodeModalOpen] = useState(false);
 
 
     const form = useForm<UrlFormData>({
         resolver: zodResolver(urlSchema),
         defaultValues: {
             url: "",
+            customCode: "",
         },
     });
 
@@ -38,6 +50,10 @@ export function UrlShortnerForm() {
             const formData = new FormData();
             formData.append("url", data.url);
 
+            if (data.customCode && data.customCode.trim() !== "") {
+                formData.append("customCode", data.customCode);
+            }
+
             const response = await shortenUrl(formData)
             if(response.success && response.data ) {
                 setShortUrl(response.data.shortUrl);
@@ -46,6 +62,10 @@ export function UrlShortnerForm() {
                 if(shortCodeMatch && shortCodeMatch[1]) {
                     setShortCode(shortCodeMatch[1])
                 }
+            }
+
+            if(session?.user && pathname.includes("/dashboard")) {
+                router.refresh(); 
             }
         } catch (error) {
             setError("an error occurred while url shorting")
@@ -63,6 +83,11 @@ export function UrlShortnerForm() {
         } catch (error) {
             console.error("Failed to copy: ", error);
         }
+    }
+
+    const showQrCode = () => {
+        if(!shortUrl || !shortCode) return;
+        setIsQrCodeModalOpen(true);
     }
 
     return (
@@ -99,6 +124,33 @@ export function UrlShortnerForm() {
                         </Button>
                     </div>
 
+                    <FormField
+                            control={form.control}
+                            name="customCode"
+                            render={({ field }) => (
+                                <FormItem className="flex-1">
+                                    <FormControl className="flex-1">
+                                        <div className="flex items-center">
+                                            <span className="text-sm text-muted-foreground mr-2">
+                                                {process.env.NEXT_PUBLIC_APP_URL || 
+                                                    originUrl}
+                                                /r/
+                                            </span>
+                                            <Input
+                                                placeholder="Enter your custom code here...(optional)"
+                                                {...field}
+                                                value={field.value || ""}
+                                                onChange={(e) => field.onChange(e.target.value || "")}
+                                                disabled={false}
+                                                className="flex-1"
+                                            />
+                                        </div>
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+
                     {error && (
                         <div className="p-3 bg-destructive/10 text-destructive rounded-md text-sm">
                             {error}
@@ -127,6 +179,14 @@ export function UrlShortnerForm() {
                                         <Copy className="size-4 mr-1"/>
                                         Copy
                                     </Button>
+                                    <Button 
+                                        type="button" 
+                                        variant={"outline"} 
+                                        className="flex-shrink-0"
+                                        onClick={showQrCode}
+                                    >
+                                        <QrCode className="size-4 mr-1"/>
+                                    </Button>
                                 </div>
                             </CardContent>
                         </Card>
@@ -134,6 +194,15 @@ export function UrlShortnerForm() {
                 </form>
             </Form>
         </div>
+
+        {shortUrl && shortCode && (
+            <QrCodeModal
+                isOpen={isQrCodeModalOpen}
+                onOpenChange={setIsQrCodeModalOpen}
+                url={shortUrl}
+                shortCode={shortCode}
+            />
+        )}
         </>
     )
 }
