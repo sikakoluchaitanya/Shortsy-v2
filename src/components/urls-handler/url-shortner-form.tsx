@@ -13,6 +13,8 @@ import { AlertTriangle, Copy, QrCode } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { QrCodeModal } from "../modals/qr-code-modal";
 import { toast } from "sonner";
+import { set } from "date-fns";
+import { SignupSuggestionDialog } from "../dialogs/signup-suggestion-dialog";
 
 
 export function UrlShortnerForm() {
@@ -30,6 +32,7 @@ export function UrlShortnerForm() {
     const [shortCode, setShortCode] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [showSignupDialog, setShowSignupDialog] = useState(false);
     const [isQrCodeModalOpen, setIsQrCodeModalOpen] = useState(false);
     const [flaggedinfo, setFlaggedinfo] = useState<{
         flagged: boolean;
@@ -87,6 +90,11 @@ export function UrlShortnerForm() {
             if(session?.user && pathname.includes("/dashboard")) {
                 router.refresh(); 
             }
+
+            if(!session?.user) {
+                setShowSignupDialog(true);
+            }
+
         } catch (error) {
             setError("an error occurred while url shorting")
             console.log(error);
@@ -236,6 +244,12 @@ export function UrlShortnerForm() {
                 </form>
             </Form>
         </div>
+
+        <SignupSuggestionDialog
+            isOpen={showSignupDialog}
+            onOpenChange={setShowSignupDialog}
+            shortUrl={shortUrl || ""}
+        />
 
         {shortUrl && shortCode && (
             <QrCodeModal
