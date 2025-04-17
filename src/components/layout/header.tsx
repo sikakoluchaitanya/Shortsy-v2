@@ -38,7 +38,7 @@ export function Header() {
         <nav className="hidden md:flex items-center gap-2">
           <ThemeToggle />
           <Button variant={"ghost"} size={"sm"} asChild>
-            <Link href={"/stats"} className="flex items-center gap-1">
+            <Link href={"/dashboard/stats"} className="flex items-center gap-1">
               <BarChart3Icon className="size-4" />
               Stats
             </Link>
