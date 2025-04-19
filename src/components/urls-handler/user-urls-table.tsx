@@ -106,7 +106,7 @@ export function UserUrlsTable({ urls }: UserUrlsTableProps) {
         return (
             <div className="text-center py-8">
                 <p className="text-muted-foreground">
-                    You havem&apos;t created any shotrt URls yet. Click the button below to
+                    You haven&apos;t created any shotrt URls yet. Click the button below to
                     create your first short URL.
                 </p>
             </div>
