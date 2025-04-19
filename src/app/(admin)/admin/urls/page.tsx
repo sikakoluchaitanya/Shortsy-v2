@@ -4,7 +4,7 @@ import { UrlsTable } from "@/components/admin/urls/urls-table";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { getAllUrls } from "@/Server/actions/admin/urls/get-all-urls";
 import { auth } from "@/Server/auth";
-import { Metadata } from "next";
+import { Metadata } from "next" ;
 import { redirect } from "next/navigation";
 
 export const metadata: Metadata = {
